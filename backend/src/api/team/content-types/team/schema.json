@@ -1,0 +1,27 @@
+{
+  "kind": "collectionType",
+  "collectionName": "teams",
+  "info": {
+    "singularName": "team",
+    "pluralName": "teams",
+    "displayName": "Teams"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "favoritos": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::favorito.favorito",
+      "mappedBy": "teams"
+    },
+    "jogos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::jogo.jogo",
+      "mappedBy": "team"
+    }
+  }
+}

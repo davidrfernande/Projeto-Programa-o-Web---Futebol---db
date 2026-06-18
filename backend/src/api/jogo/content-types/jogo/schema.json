@@ -1,0 +1,21 @@
+{
+  "kind": "collectionType",
+  "collectionName": "jogos",
+  "info": {
+    "singularName": "jogo",
+    "pluralName": "jogos",
+    "displayName": "Jogos"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "team": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::team.team",
+      "inversedBy": "jogos"
+    }
+  }
+}
