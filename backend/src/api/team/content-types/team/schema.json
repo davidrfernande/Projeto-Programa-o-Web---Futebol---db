@@ -22,6 +22,19 @@
       "relation": "oneToMany",
       "target": "api::jogo.jogo",
       "mappedBy": "team"
+    },
+    "name": {
+      "type": "string"
+    },
+    "logo": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
     }
   }
 }
