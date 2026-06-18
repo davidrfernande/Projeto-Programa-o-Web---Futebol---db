@@ -13,15 +13,21 @@
   "attributes": {
     "favoritos": {
       "type": "relation",
-      "relation": "manyToMany",
+      "relation": "oneToMany",
       "target": "api::favorito.favorito",
-      "mappedBy": "teams"
+      "mappedBy": "team"
     },
-    "jogos": {
+    "jogos_casa": {
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::jogo.jogo",
-      "mappedBy": "team"
+      "mappedBy": "equipa_casa"
+    },
+    "jogos_fora": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::jogo.jogo",
+      "mappedBy": "equipa_fora"
     },
     "name": {
       "type": "string"

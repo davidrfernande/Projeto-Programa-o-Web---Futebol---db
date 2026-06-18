@@ -11,10 +11,22 @@
   },
   "pluginOptions": {},
   "attributes": {
-    "team": {
+    "equipa_casa": {
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::team.team",
+      "inversedBy": "jogos_casa"
+    },
+    "equipa_fora": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::team.team",
+      "inversedBy": "jogos_fora"
+    },
+    "estadio": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::estadio.estadio",
       "inversedBy": "jogos"
     }
   }

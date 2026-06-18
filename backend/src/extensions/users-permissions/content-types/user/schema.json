@@ -68,9 +68,9 @@
     },
     "favoritos": {
       "type": "relation",
-      "relation": "manyToMany",
+      "relation": "oneToMany",
       "target": "api::favorito.favorito",
-      "mappedBy": "users"
+      "mappedBy": "user"
     }
   }
 }

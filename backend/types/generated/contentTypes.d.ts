@@ -440,6 +440,35 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiEstadioEstadio extends Struct.CollectionTypeSchema {
+  collectionName: 'estadios';
+  info: {
+    displayName: 'Estadio';
+    pluralName: 'estadios';
+    singularName: 'estadio';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    jogos: Schema.Attribute.Relation<'oneToMany', 'api::jogo.jogo'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::estadio.estadio'
+    > &
+      Schema.Attribute.Private;
+    nome: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiFavoritoFavorito extends Struct.CollectionTypeSchema {
   collectionName: 'favoritos';
   info: {
@@ -461,12 +490,12 @@ export interface ApiFavoritoFavorito extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
-    teams: Schema.Attribute.Relation<'manyToMany', 'api::team.team'>;
+    team: Schema.Attribute.Relation<'manyToOne', 'api::team.team'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    users: Schema.Attribute.Relation<
-      'manyToMany',
+    user: Schema.Attribute.Relation<
+      'manyToOne',
       'plugin::users-permissions.user'
     >;
   };
@@ -486,11 +515,13 @@ export interface ApiJogoJogo extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    equipa_casa: Schema.Attribute.Relation<'manyToOne', 'api::team.team'>;
+    equipa_fora: Schema.Attribute.Relation<'manyToOne', 'api::team.team'>;
+    estadio: Schema.Attribute.Relation<'manyToOne', 'api::estadio.estadio'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::jogo.jogo'> &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
-    team: Schema.Attribute.Relation<'manyToOne', 'api::team.team'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -511,11 +542,9 @@ export interface ApiTeamTeam extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    favoritos: Schema.Attribute.Relation<
-      'manyToMany',
-      'api::favorito.favorito'
-    >;
-    jogos: Schema.Attribute.Relation<'oneToMany', 'api::jogo.jogo'>;
+    favoritos: Schema.Attribute.Relation<'oneToMany', 'api::favorito.favorito'>;
+    jogos_casa: Schema.Attribute.Relation<'oneToMany', 'api::jogo.jogo'>;
+    jogos_fora: Schema.Attribute.Relation<'oneToMany', 'api::jogo.jogo'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::team.team'> &
       Schema.Attribute.Private;
@@ -997,10 +1026,7 @@ export interface PluginUsersPermissionsUser
       Schema.Attribute.SetMinMaxLength<{
         minLength: 6;
       }>;
-    favoritos: Schema.Attribute.Relation<
-      'manyToMany',
-      'api::favorito.favorito'
-    >;
+    favoritos: Schema.Attribute.Relation<'oneToMany', 'api::favorito.favorito'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -1042,6 +1068,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::estadio.estadio': ApiEstadioEstadio;
       'api::favorito.favorito': ApiFavoritoFavorito;
       'api::jogo.jogo': ApiJogoJogo;
       'api::team.team': ApiTeamTeam;

@@ -11,15 +11,15 @@
   },
   "pluginOptions": {},
   "attributes": {
-    "users": {
+    "user": {
       "type": "relation",
-      "relation": "manyToMany",
+      "relation": "manyToOne",
       "target": "plugin::users-permissions.user",
       "inversedBy": "favoritos"
     },
-    "teams": {
+    "team": {
       "type": "relation",
-      "relation": "manyToMany",
+      "relation": "manyToOne",
       "target": "api::team.team",
       "inversedBy": "favoritos"
     }
