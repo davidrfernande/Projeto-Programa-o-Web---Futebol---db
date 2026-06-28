@@ -28,6 +28,29 @@
       "relation": "manyToOne",
       "target": "api::estadio.estadio",
       "inversedBy": "jogos"
+    },
+    "data": {
+      "type": "datetime"
+    },
+    "fase": {
+      "type": "string"
+    },
+    "estado": {
+      "type": "enumeration",
+      "enum": [
+        "Agendado",
+        "A decorrer",
+        "Terminado"
+      ],
+      "default": "Agendado"
+    },
+    "golos_casa": {
+      "type": "integer",
+      "default": 0
+    },
+    "golos_fora": {
+      "type": "integer",
+      "default": 0
     }
   }
 }

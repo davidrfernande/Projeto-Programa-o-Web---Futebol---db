@@ -14,7 +14,7 @@
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "x-generation-date": "2026-06-23T08:46:21.965Z"
+    "x-generation-date": "2026-06-28T18:21:03.645Z"
   },
   "x-strapi-config": {
     "plugins": [
@@ -5492,6 +5492,27 @@
                     }
                   }
                 },
+                "data": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "fase": {
+                  "type": "string"
+                },
+                "estado": {
+                  "type": "string",
+                  "enum": [
+                    "Agendado",
+                    "A decorrer",
+                    "Terminado"
+                  ]
+                },
+                "golos_casa": {
+                  "type": "integer"
+                },
+                "golos_fora": {
+                  "type": "integer"
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -6915,6 +6936,27 @@
                                   }
                                 }
                               },
+                              "data": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "fase": {
+                                "type": "string"
+                              },
+                              "estado": {
+                                "type": "string",
+                                "enum": [
+                                  "Agendado",
+                                  "A decorrer",
+                                  "Terminado"
+                                ]
+                              },
+                              "golos_casa": {
+                                "type": "integer"
+                              },
+                              "golos_fora": {
+                                "type": "integer"
+                              },
                               "createdAt": {
                                 "type": "string",
                                 "format": "date-time"
@@ -7848,6 +7890,27 @@
                   }
                 ],
                 "example": "string or id"
+              },
+              "data": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "fase": {
+                "type": "string"
+              },
+              "estado": {
+                "type": "string",
+                "enum": [
+                  "Agendado",
+                  "A decorrer",
+                  "Terminado"
+                ]
+              },
+              "golos_casa": {
+                "type": "integer"
+              },
+              "golos_fora": {
+                "type": "integer"
               },
               "locale": {
                 "type": "string"
@@ -9230,6 +9293,27 @@
                         }
                       }
                     },
+                    "data": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "fase": {
+                      "type": "string"
+                    },
+                    "estado": {
+                      "type": "string",
+                      "enum": [
+                        "Agendado",
+                        "A decorrer",
+                        "Terminado"
+                      ]
+                    },
+                    "golos_casa": {
+                      "type": "integer"
+                    },
+                    "golos_fora": {
+                      "type": "integer"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -9905,6 +9989,27 @@
                 "type": "string"
               }
             }
+          },
+          "data": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fase": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "Agendado",
+              "A decorrer",
+              "Terminado"
+            ]
+          },
+          "golos_casa": {
+            "type": "integer"
+          },
+          "golos_fora": {
+            "type": "integer"
           },
           "createdAt": {
             "type": "string",
@@ -11364,6 +11469,27 @@
                                 }
                               }
                             }
+                          },
+                          "data": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "fase": {
+                            "type": "string"
+                          },
+                          "estado": {
+                            "type": "string",
+                            "enum": [
+                              "Agendado",
+                              "A decorrer",
+                              "Terminado"
+                            ]
+                          },
+                          "golos_casa": {
+                            "type": "integer"
+                          },
+                          "golos_fora": {
+                            "type": "integer"
                           },
                           "createdAt": {
                             "type": "string",

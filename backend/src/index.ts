@@ -1,20 +1,38 @@
-// import type { Core } from '@strapi/strapi';
+import type { Core } from '@strapi/strapi';
+
+const PUBLIC_CRUD_ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'];
+const PUBLIC_CRUD_CONTENT_TYPES = ['team', 'estadio', 'jogo', 'favorito'];
 
 export default {
-  /**
-   * An asynchronous register function that runs before
-   * your application is initialized.
-   *
-   * This gives you an opportunity to extend code.
-   */
-  register(/* { strapi }: { strapi: Core.Strapi } */) {},
+  register() {},
 
-  /**
-   * An asynchronous bootstrap function that runs before
-   * your application gets started.
-   *
-   * This gives you an opportunity to set up your data model,
-   * run jobs, or perform some special logic.
-   */
-  bootstrap(/* { strapi }: { strapi: Core.Strapi } */) {},
+  async bootstrap({ strapi }: { strapi: Core.Strapi }) {
+    const publicRole = await strapi.db.query('plugin::users-permissions.role').findOne({
+      where: { type: 'public' },
+      populate: ['permissions'],
+    });
+
+    if (!publicRole) {
+      return;
+    }
+
+    const existingActions = new Set(
+      (publicRole.permissions || []).map((permission: { action: string }) => permission.action)
+    );
+
+    const permissionsToCreate = PUBLIC_CRUD_CONTENT_TYPES.flatMap((contentType) =>
+      PUBLIC_CRUD_ACTIONS.map((action) => `api::${contentType}.${contentType}.${action}`)
+    ).filter((action) => !existingActions.has(action));
+
+    await Promise.all(
+      permissionsToCreate.map((action) =>
+        strapi.db.query('plugin::users-permissions.permission').create({
+          data: {
+            action,
+            role: publicRole.id,
+          },
+        })
+      )
+    );
+  },
 };
