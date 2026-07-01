@@ -55,15 +55,19 @@ export default factories.createCoreController("api::favorito.favorito", ({ strap
       return;
     }
 
-    ctx.request.body = {
+    const createdFavorite = await strapi.db.query("api::favorito.favorito").create({
       data: {
-        ...(ctx.request.body?.data || {}),
         team: team.id,
         user: user.id,
+        publishedAt: new Date().toISOString(),
       },
-    };
+      populate: ["team", "user"],
+    });
 
-    return super.create(ctx);
+    ctx.body = {
+      data: createdFavorite,
+      meta: {},
+    };
   },
 
   async delete(ctx) {
@@ -86,7 +90,20 @@ export default factories.createCoreController("api::favorito.favorito", ({ strap
       }
     }
 
-    return super.delete(ctx);
+    const favorito = await findFavorito(strapi, ctx.params.id);
+
+    if (!favorito) {
+      return ctx.notFound("Favorito nao encontrado.");
+    }
+
+    await strapi.db.query("api::favorito.favorito").delete({
+      where: { id: favorito.id },
+    });
+
+    ctx.body = {
+      data: favorito,
+      meta: {},
+    };
   },
 }));
 

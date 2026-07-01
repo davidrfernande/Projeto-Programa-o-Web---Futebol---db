@@ -65,8 +65,13 @@ async function ensureRolePermissions(
   role: { id: number | string; permissions?: { action: string }[] },
   actions: string[]
 ) {
+  const currentPermissions = await strapi.db
+    .query("plugin::users-permissions.permission")
+    .findMany({
+      where: { role: role.id },
+    });
   const existingActions = new Set(
-    (role.permissions || []).map((permission: { action: string }) => permission.action)
+    currentPermissions.map((permission: { action: string }) => permission.action)
   );
 
   const permissionsToCreate = actions.filter((action) => !existingActions.has(action));
