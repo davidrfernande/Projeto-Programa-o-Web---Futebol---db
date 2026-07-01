@@ -6,6 +6,7 @@ const WRITE_ACTIONS = ["create", "update", "delete"];
 const CRUD_CONTENT_TYPES = ["team", "estadio", "jogo", "favorito"];
 const AUTHENTICATED_FAVORITO_ACTIONS = ["api::favorito.favorito.create", "api::favorito.favorito.delete"];
 const USER_ME_ACTION = "plugin::users-permissions.user.me";
+const ADMIN_EXTRA_ACTIONS = ["api::mundial-import.mundial-import.importWorldCup"];
 
 export default {
   register() {},
@@ -48,7 +49,7 @@ export default {
     await ensureRolePermissions(
       strapi,
       adminRole,
-      [...buildActions(CRUD_CONTENT_TYPES, ADMIN_ACTIONS), USER_ME_ACTION]
+      [...buildActions(CRUD_CONTENT_TYPES, ADMIN_ACTIONS), USER_ME_ACTION, ...ADMIN_EXTRA_ACTIONS]
     );
   },
 };

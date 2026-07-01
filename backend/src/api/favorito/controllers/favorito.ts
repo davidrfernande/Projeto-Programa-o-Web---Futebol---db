@@ -19,12 +19,13 @@ export default factories.createCoreController("api::favorito.favorito", ({ strap
     const where = (await isAdminUser(strapi, user)) ? {} : { user: user.id };
     const favoritos = await strapi.db.query("api::favorito.favorito").findMany({
       where,
-      populate: ["team"],
+      populate: ["team", "user"],
       orderBy: { createdAt: "desc" },
     });
+    const uniqueFavoritos = await removeDuplicateFavorites(strapi, favoritos);
 
     ctx.body = {
-      data: favoritos,
+      data: uniqueFavoritos,
       meta: {},
     };
   },
@@ -36,9 +37,28 @@ export default factories.createCoreController("api::favorito.favorito", ({ strap
       return ctx.unauthorized("Precisas de iniciar sessao para adicionar favoritos.");
     }
 
+    const team = await findTeam(strapi, ctx.request.body?.data?.team);
+
+    if (!team) {
+      return ctx.badRequest("Equipa nao encontrada.");
+    }
+
+    const existingFavorite = await findFavoriteByUserAndTeam(strapi, user.id, team.id);
+
+    if (existingFavorite) {
+      ctx.body = {
+        data: existingFavorite,
+        meta: {
+          alreadyExists: true,
+        },
+      };
+      return;
+    }
+
     ctx.request.body = {
       data: {
         ...(ctx.request.body?.data || {}),
+        team: team.id,
         user: user.id,
       },
     };
@@ -89,6 +109,55 @@ async function findFavorito(strapi: any, id: string) {
     where: { id: numericId },
     populate: ["user"],
   });
+}
+
+async function findTeam(strapi: any, value: string | number) {
+  if (!value) return null;
+
+  const numericId = Number(value);
+  if (Number.isFinite(numericId)) {
+    const byId = await strapi.db.query("api::team.team").findOne({
+      where: { id: numericId },
+    });
+
+    if (byId) {
+      return byId;
+    }
+  }
+
+  return strapi.db.query("api::team.team").findOne({
+    where: { documentId: String(value) },
+  });
+}
+
+async function findFavoriteByUserAndTeam(strapi: any, userId: number, teamId: number) {
+  const favoritos = await strapi.db.query("api::favorito.favorito").findMany({
+    where: { user: userId },
+    populate: ["team", "user"],
+  });
+
+  return favoritos.find((favorito: { team?: { id?: number } }) => favorito.team?.id === teamId);
+}
+
+async function removeDuplicateFavorites(strapi: any, favoritos: any[]) {
+  const seen = new Set();
+  const unique = [];
+
+  for (const favorito of favoritos) {
+    const key = `${favorito.user?.id || "admin"}:${favorito.team?.id || favorito.id}`;
+
+    if (seen.has(key)) {
+      await strapi.db.query("api::favorito.favorito").delete({
+        where: { id: favorito.id },
+      });
+      continue;
+    }
+
+    seen.add(key);
+    unique.push(favorito);
+  }
+
+  return unique;
 }
 
 async function isAdminUser(strapi: any, user: any) {

@@ -454,6 +454,7 @@ export interface ApiEstadioEstadio extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    externalId: Schema.Attribute.Integer & Schema.Attribute.Unique;
     jogos: Schema.Attribute.Relation<'oneToMany', 'api::jogo.jogo'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -523,6 +524,7 @@ export interface ApiJogoJogo extends Struct.CollectionTypeSchema {
       ['Agendado', 'A decorrer', 'Terminado']
     > &
       Schema.Attribute.DefaultTo<'Agendado'>;
+    externalId: Schema.Attribute.Integer & Schema.Attribute.Unique;
     fase: Schema.Attribute.String;
     golos_casa: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     golos_fora: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
@@ -550,6 +552,7 @@ export interface ApiTeamTeam extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    externalId: Schema.Attribute.Integer & Schema.Attribute.Unique;
     favoritos: Schema.Attribute.Relation<'oneToMany', 'api::favorito.favorito'>;
     jogos_casa: Schema.Attribute.Relation<'oneToMany', 'api::jogo.jogo'>;
     jogos_fora: Schema.Attribute.Relation<'oneToMany', 'api::jogo.jogo'>;

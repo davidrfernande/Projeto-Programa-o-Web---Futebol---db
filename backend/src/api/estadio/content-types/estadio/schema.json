@@ -14,6 +14,10 @@
     "nome": {
       "type": "string"
     },
+    "externalId": {
+      "type": "integer",
+      "unique": true
+    },
     "jogos": {
       "type": "relation",
       "relation": "oneToMany",

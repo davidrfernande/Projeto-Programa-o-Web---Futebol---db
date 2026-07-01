@@ -11,6 +11,10 @@
   },
   "pluginOptions": {},
   "attributes": {
+    "externalId": {
+      "type": "integer",
+      "unique": true
+    },
     "equipa_casa": {
       "type": "relation",
       "relation": "manyToOne",
