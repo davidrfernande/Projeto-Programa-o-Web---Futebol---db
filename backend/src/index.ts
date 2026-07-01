@@ -1,9 +1,11 @@
 import type { Core } from "@strapi/strapi";
 
 const PUBLIC_ACTIONS = ["find", "findOne"];
-const AUTHENTICATED_ACTIONS = ["find", "findOne", "create", "update", "delete"];
+const ADMIN_ACTIONS = ["find", "findOne", "create", "update", "delete"];
 const WRITE_ACTIONS = ["create", "update", "delete"];
-const PUBLIC_CRUD_CONTENT_TYPES = ['team', 'estadio', 'jogo', 'favorito'];
+const CRUD_CONTENT_TYPES = ["team", "estadio", "jogo", "favorito"];
+const AUTHENTICATED_FAVORITO_ACTIONS = ["api::favorito.favorito.create", "api::favorito.favorito.delete"];
+const USER_ME_ACTION = "plugin::users-permissions.user.me";
 
 export default {
   register() {},
@@ -18,24 +20,35 @@ export default {
         where: { type: "authenticated" },
         populate: ["permissions"],
       }),
+      findOrCreateAdminRole(strapi),
     ]);
 
-    const [publicRole, authenticatedRole] = roles;
+    const [publicRole, authenticatedRole, adminRole] = roles;
 
-    if (!publicRole || !authenticatedRole) {
+    if (!publicRole || !authenticatedRole || !adminRole) {
       return;
     }
 
-    await removePublicWritePermissions(strapi, publicRole.id);
+    await removeWritePermissions(strapi, publicRole.id);
+    await removeWritePermissions(strapi, authenticatedRole.id);
     await ensureRolePermissions(
       strapi,
       publicRole,
-      buildActions(PUBLIC_CRUD_CONTENT_TYPES, PUBLIC_ACTIONS)
+      buildActions(CRUD_CONTENT_TYPES, PUBLIC_ACTIONS)
     );
     await ensureRolePermissions(
       strapi,
       authenticatedRole,
-      buildActions(PUBLIC_CRUD_CONTENT_TYPES, AUTHENTICATED_ACTIONS)
+      [
+        ...buildActions(CRUD_CONTENT_TYPES, PUBLIC_ACTIONS),
+        ...AUTHENTICATED_FAVORITO_ACTIONS,
+        USER_ME_ACTION,
+      ]
+    );
+    await ensureRolePermissions(
+      strapi,
+      adminRole,
+      [...buildActions(CRUD_CONTENT_TYPES, ADMIN_ACTIONS), USER_ME_ACTION]
     );
   },
 };
@@ -48,7 +61,7 @@ function buildActions(contentTypes: string[], actions: string[]) {
 
 async function ensureRolePermissions(
   strapi: Core.Strapi,
-  role: { id: number; permissions?: { action: string }[] },
+  role: { id: number | string; permissions?: { action: string }[] },
   actions: string[]
 ) {
   const existingActions = new Set(
@@ -69,15 +82,35 @@ async function ensureRolePermissions(
   );
 }
 
-async function removePublicWritePermissions(strapi: Core.Strapi, publicRoleId: number) {
-  const publicWriteActions = buildActions(PUBLIC_CRUD_CONTENT_TYPES, WRITE_ACTIONS);
+async function removeWritePermissions(strapi: Core.Strapi, roleId: number | string) {
+  const writeActions = buildActions(CRUD_CONTENT_TYPES, WRITE_ACTIONS);
 
   await strapi.db.query("plugin::users-permissions.permission").deleteMany({
     where: {
-      role: publicRoleId,
+      role: roleId,
       action: {
-        $in: publicWriteActions,
+        $in: writeActions,
       },
     },
+  });
+}
+
+async function findOrCreateAdminRole(strapi: Core.Strapi) {
+  const existingRole = await strapi.db.query("plugin::users-permissions.role").findOne({
+    where: { type: "admin" },
+    populate: ["permissions"],
+  });
+
+  if (existingRole) {
+    return existingRole;
+  }
+
+  return strapi.db.query("plugin::users-permissions.role").create({
+    data: {
+      name: "Admin",
+      description: "Pode gerir os dados da aplicacao.",
+      type: "admin",
+    },
+    populate: ["permissions"],
   });
 }
