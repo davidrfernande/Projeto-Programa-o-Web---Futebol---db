@@ -64,10 +64,12 @@ export default {
       venues: 0,
       matches: 0,
       skipped: 0,
+      removedImported: 0,
       removedPlaceholders: 0,
       removedOrphanRelations: 0,
     };
 
+    stats.removedImported = await cleanupImportedData(strapi);
     stats.removedOrphanRelations += await cleanupOrphanRelations(strapi);
     stats.removedPlaceholders = await cleanupPlaceholderData(strapi);
     stats.removedOrphanRelations += await cleanupOrphanRelations(strapi);
@@ -106,7 +108,11 @@ export default {
         venueDocumentId: venue?.entry.documentId,
       });
 
-      stats.matches += 1;
+      if (savedMatch.created) {
+        stats.matches += 1;
+      } else {
+        stats.skipped += 1;
+      }
     }
 
     if (stats.matches === 0) {
@@ -205,9 +211,10 @@ async function upsertTeam(strapi: any, team: ApiTeam) {
 
   if (existing) {
     return {
-      entry: await strapi.db.query("api::team.team").update({
-        where: { id: existing.id },
+      entry: await strapi.documents("api::team.team").update({
+        documentId: existing.documentId,
         data,
+        status: "published",
       }),
       created: false,
     };
@@ -237,9 +244,10 @@ async function upsertVenue(strapi: any, venue?: ApiVenue | null) {
 
   if (existing) {
     return {
-      entry: await strapi.db.query("api::estadio.estadio").update({
-        where: { id: existing.id },
+      entry: await strapi.documents("api::estadio.estadio").update({
+        documentId: existing.documentId,
         data,
+        status: "published",
       }),
       created: false,
     };
@@ -280,32 +288,85 @@ async function upsertMatch(
   };
 
   if (existing) {
-    return {
-      entry: await strapi.db.query("api::jogo.jogo").update({
-        where: { id: existing.id },
-        data: {
-          ...baseData,
-          equipa_casa: relations.homeTeamId,
-          equipa_fora: relations.awayTeamId,
-          estadio: relations.venueId,
-        },
-      }),
-      created: false,
-    };
+    try {
+      return {
+        entry: await strapi.documents("api::jogo.jogo").update({
+          documentId: existing.documentId,
+          data: {
+            ...baseData,
+            equipa_casa: relations.homeTeamDocumentId,
+            equipa_fora: relations.awayTeamDocumentId,
+            estadio: relations.venueDocumentId,
+          },
+          status: "published",
+        }),
+        created: true,
+      };
+    } catch {
+      return {
+        entry: await strapi.db.query("api::jogo.jogo").update({
+          where: { id: existing.id },
+          data: {
+            ...baseData,
+            equipa_casa: relations.homeTeamId,
+            equipa_fora: relations.awayTeamId,
+            estadio: relations.venueId,
+          },
+        }),
+        created: true,
+      };
+    }
   }
 
-  return {
-    entry: await strapi.documents("api::jogo.jogo").create({
-      data: {
-        ...baseData,
-        equipa_casa: relations.homeTeamDocumentId,
-        equipa_fora: relations.awayTeamDocumentId,
-        estadio: relations.venueDocumentId,
-      },
-      status: "published",
-    }),
-    created: true,
-  };
+  try {
+    return {
+      entry: await strapi.documents("api::jogo.jogo").create({
+        data: {
+          ...baseData,
+          equipa_casa: relations.homeTeamDocumentId,
+          equipa_fora: relations.awayTeamDocumentId,
+          estadio: relations.venueDocumentId,
+        },
+        status: "published",
+      }),
+      created: true,
+    };
+  } catch {
+    const entry = await strapi.db.query("api::jogo.jogo").create({
+      data: baseData,
+    });
+
+    await replaceSingleRelation(strapi, "jogos_equipa_casa_lnk", "jogo_id", entry.id, "team_id", relations.homeTeamId);
+    await replaceSingleRelation(strapi, "jogos_equipa_fora_lnk", "jogo_id", entry.id, "team_id", relations.awayTeamId);
+
+    if (relations.venueId) {
+      await replaceSingleRelation(strapi, "jogos_estadio_lnk", "jogo_id", entry.id, "estadio_id", relations.venueId);
+    }
+
+    return {
+      entry,
+      created: true,
+    };
+  }
+}
+
+async function replaceSingleRelation(
+  strapi: any,
+  linkTable: string,
+  ownerColumn: string,
+  ownerId: number,
+  relatedColumn: string,
+  relatedId?: number
+) {
+  if (!relatedId) return;
+
+  const db = strapi.db.connection;
+
+  await db(linkTable).where(ownerColumn, ownerId).delete();
+  await db(linkTable).insert({
+    [ownerColumn]: ownerId,
+    [relatedColumn]: relatedId,
+  });
 }
 
 function mapStatus(status?: string) {
@@ -369,6 +430,59 @@ async function cleanupPlaceholderData(strapi: any) {
   }
 
   return removed;
+}
+
+async function cleanupImportedData(strapi: any) {
+  let removed = 0;
+
+  const importedTeams = await strapi.db.query("api::team.team").findMany({
+    where: {
+      externalId: {
+        $notNull: true,
+      },
+    },
+  });
+  const importedTeamIds = new Set(importedTeams.map((team: { id: number }) => team.id));
+
+  if (importedTeamIds.size > 0) {
+    const favoritos = await strapi.db.query("api::favorito.favorito").findMany({
+      populate: ["team"],
+    });
+
+    for (const favorito of favoritos) {
+      if (importedTeamIds.has(favorito.team?.id)) {
+        await strapi.db.query("api::favorito.favorito").delete({
+          where: { id: favorito.id },
+        });
+        removed += 1;
+      }
+    }
+  }
+
+  removed += await deleteEntriesByExternalId(strapi, "api::jogo.jogo");
+  removed += await deleteEntriesByExternalId(strapi, "api::estadio.estadio");
+  removed += await deleteEntriesByExternalId(strapi, "api::team.team");
+  removed += await cleanupOrphanRelations(strapi);
+
+  return removed;
+}
+
+async function deleteEntriesByExternalId(strapi: any, uid: string) {
+  const entries = await strapi.db.query(uid).findMany({
+    where: {
+      externalId: {
+        $notNull: true,
+      },
+    },
+  });
+
+  for (const entry of entries) {
+    await strapi.db.query(uid).delete({
+      where: { id: entry.id },
+    });
+  }
+
+  return entries.length;
 }
 
 async function cleanupOrphanRelations(strapi: any) {
