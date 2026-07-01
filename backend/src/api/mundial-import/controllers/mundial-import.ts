@@ -65,9 +65,12 @@ export default {
       matches: 0,
       skipped: 0,
       removedPlaceholders: 0,
+      removedOrphanRelations: 0,
     };
 
+    stats.removedOrphanRelations += await cleanupOrphanRelations(strapi);
     stats.removedPlaceholders = await cleanupPlaceholderData(strapi);
+    stats.removedOrphanRelations += await cleanupOrphanRelations(strapi);
 
     for (const fixture of fixtures) {
       const home = { id: fixture.home_team_id, name: fixture.home_team };
@@ -98,6 +101,9 @@ export default {
         homeTeamId: homeTeam.entry.id,
         awayTeamId: awayTeam.entry.id,
         venueId: venue?.entry.id,
+        homeTeamDocumentId: homeTeam.entry.documentId,
+        awayTeamDocumentId: awayTeam.entry.documentId,
+        venueDocumentId: venue?.entry.documentId,
       });
 
       stats.matches += 1;
@@ -208,7 +214,10 @@ async function upsertTeam(strapi: any, team: ApiTeam) {
   }
 
   return {
-    entry: await strapi.db.query("api::team.team").create({ data }),
+    entry: await strapi.documents("api::team.team").create({
+      data,
+      status: "published",
+    }),
     created: true,
   };
 }
@@ -237,7 +246,10 @@ async function upsertVenue(strapi: any, venue?: ApiVenue | null) {
   }
 
   return {
-    entry: await strapi.db.query("api::estadio.estadio").create({ data }),
+    entry: await strapi.documents("api::estadio.estadio").create({
+      data,
+      status: "published",
+    }),
     created: true,
   };
 }
@@ -245,16 +257,20 @@ async function upsertVenue(strapi: any, venue?: ApiVenue | null) {
 async function upsertMatch(
   strapi: any,
   fixture: ApiFixture,
-  relations: { homeTeamId: number; awayTeamId: number; venueId?: number }
+  relations: {
+    homeTeamId: number;
+    awayTeamId: number;
+    venueId?: number;
+    homeTeamDocumentId: string;
+    awayTeamDocumentId: string;
+    venueDocumentId?: string;
+  }
 ) {
   const existing = await strapi.db.query("api::jogo.jogo").findOne({
     where: { externalId: fixture.id },
   });
-  const data = {
+  const baseData = {
     externalId: fixture.id,
-    equipa_casa: relations.homeTeamId,
-    equipa_fora: relations.awayTeamId,
-    estadio: relations.venueId,
     data: fixture.event_date || null,
     fase: fixture.group_name || fixture.round_name || "",
     estado: mapStatus(fixture.status),
@@ -267,14 +283,27 @@ async function upsertMatch(
     return {
       entry: await strapi.db.query("api::jogo.jogo").update({
         where: { id: existing.id },
-        data,
+        data: {
+          ...baseData,
+          equipa_casa: relations.homeTeamId,
+          equipa_fora: relations.awayTeamId,
+          estadio: relations.venueId,
+        },
       }),
       created: false,
     };
   }
 
   return {
-    entry: await strapi.db.query("api::jogo.jogo").create({ data }),
+    entry: await strapi.documents("api::jogo.jogo").create({
+      data: {
+        ...baseData,
+        equipa_casa: relations.homeTeamDocumentId,
+        equipa_fora: relations.awayTeamDocumentId,
+        estadio: relations.venueDocumentId,
+      },
+      status: "published",
+    }),
     created: true,
   };
 }
@@ -337,6 +366,51 @@ async function cleanupPlaceholderData(strapi: any) {
       where: { id: teamId },
     });
     removed += 1;
+  }
+
+  return removed;
+}
+
+async function cleanupOrphanRelations(strapi: any) {
+  const db = strapi.db.connection;
+  let removed = 0;
+
+  removed += await deleteOrphanLinks(db, "jogos_equipa_casa_lnk", [
+    ["jogo_id", "jogos"],
+    ["team_id", "teams"],
+  ]);
+  removed += await deleteOrphanLinks(db, "jogos_equipa_fora_lnk", [
+    ["jogo_id", "jogos"],
+    ["team_id", "teams"],
+  ]);
+  removed += await deleteOrphanLinks(db, "jogos_estadio_lnk", [
+    ["jogo_id", "jogos"],
+    ["estadio_id", "estadios"],
+  ]);
+  removed += await deleteOrphanLinks(db, "favoritos_team_lnk", [
+    ["favorito_id", "favoritos"],
+    ["team_id", "teams"],
+  ]);
+  removed += await deleteOrphanLinks(db, "favoritos_user_lnk", [
+    ["favorito_id", "favoritos"],
+    ["user_id", "up_users"],
+  ]);
+
+  return removed;
+}
+
+async function deleteOrphanLinks(
+  db: any,
+  linkTable: string,
+  references: [column: string, targetTable: string][]
+) {
+  let removed = 0;
+
+  for (const [column, targetTable] of references) {
+    const result = await db(linkTable)
+      .whereNotIn(column, db.select("id").from(targetTable))
+      .delete();
+    removed += Number(result || 0);
   }
 
   return removed;
